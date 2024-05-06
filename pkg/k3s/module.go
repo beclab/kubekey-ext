@@ -192,7 +192,8 @@ func (i *InitClusterModule) Init() {
 		},
 		Action:   new(AddMasterTaint),
 		Parallel: true,
-		Retry:    100,
+		Retry:    200,
+		Delay:    10,
 	}
 
 	addWorkerLabel := &task.RemoteTask{
@@ -206,7 +207,8 @@ func (i *InitClusterModule) Init() {
 		},
 		Action:   new(AddWorkerLabel),
 		Parallel: true,
-		Retry:    100,
+		Retry:    200,
+		Delay:    10,
 	}
 
 	i.Tasks = []task.Interface{

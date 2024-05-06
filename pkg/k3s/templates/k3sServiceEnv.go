@@ -17,8 +17,9 @@
 package templates
 
 import (
-	"github.com/lithammer/dedent"
 	"text/template"
+
+	"github.com/lithammer/dedent"
 )
 
 // K3sServiceEnv defines the template of kubelet's Env for the kubelet's systemd service.
@@ -40,5 +41,6 @@ K3S_KUBECONFIG_MODE=644
 {{ if .Token }}
 K3S_TOKEN={{ .Token }}
 {{ end }}
+GODEBUG=netdns=go
 
     `)))
