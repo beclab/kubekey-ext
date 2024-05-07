@@ -18,6 +18,7 @@ package k3s
 
 import (
 	"path/filepath"
+	"time"
 
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
@@ -193,7 +194,7 @@ func (i *InitClusterModule) Init() {
 		Action:   new(AddMasterTaint),
 		Parallel: true,
 		Retry:    200,
-		Delay:    10,
+		Delay:    10 * time.Second,
 	}
 
 	addWorkerLabel := &task.RemoteTask{
@@ -208,7 +209,7 @@ func (i *InitClusterModule) Init() {
 		Action:   new(AddWorkerLabel),
 		Parallel: true,
 		Retry:    200,
-		Delay:    10,
+		Delay:    10 * time.Second,
 	}
 
 	i.Tasks = []task.Interface{
@@ -308,7 +309,8 @@ func (j *JoinNodesModule) Init() {
 		},
 		Action:   new(AddMasterTaint),
 		Parallel: true,
-		Retry:    100,
+		Retry:    200,
+		Delay:    10 * time.Second,
 	}
 
 	addWorkerLabel := &task.RemoteTask{
@@ -321,7 +323,8 @@ func (j *JoinNodesModule) Init() {
 		},
 		Action:   new(AddWorkerLabel),
 		Parallel: true,
-		Retry:    100,
+		Retry:    200,
+		Delay:    10 * time.Second,
 	}
 
 	j.Tasks = []task.Interface{
