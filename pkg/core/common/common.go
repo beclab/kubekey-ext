@@ -17,7 +17,8 @@
 package common
 
 const (
-	KubeKey = "kubekey"
+	// KubeKey = "kubekey"
+	KubeKey = "pkg"
 
 	Pipeline = "Pipeline"
 	Module   = "Module"
