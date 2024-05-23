@@ -32,7 +32,6 @@ import (
 	"github.com/kubesphere/kubekey/pkg/k8e"
 	"github.com/kubesphere/kubekey/pkg/kubernetes"
 	"github.com/kubesphere/kubekey/pkg/plugins"
-	"github.com/kubesphere/kubekey/pkg/plugins/dns"
 
 	kubekeycontroller "github.com/kubesphere/kubekey/controllers/kubekey"
 	"github.com/kubesphere/kubekey/pkg/addons"
@@ -47,6 +46,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/k3s"
 	"github.com/kubesphere/kubekey/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/pkg/loadbalancer"
+	"github.com/kubesphere/kubekey/pkg/plugins/dns"
 	"github.com/kubesphere/kubekey/pkg/plugins/network"
 	"github.com/kubesphere/kubekey/pkg/plugins/storage"
 )
@@ -178,6 +178,7 @@ func NewK3sCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&k3s.StatusModule{},
 		&k3s.JoinNodesModule{},
 		&images.CopyImagesToRegistryModule{Skip: skipPushImages},
+		// &images.PullModule{Skip: runtime.Arg.SkipPullImages}, // todo need to fix
 		&loadbalancer.K3sHaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
 		&network.DeployNetworkPluginModule{},
 		&kubernetes.ConfigureKubernetesModule{},

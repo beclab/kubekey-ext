@@ -18,12 +18,13 @@ package images
 
 import (
 	"fmt"
+	"os"
+
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
 	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/pkg/errors"
-	"os"
 )
 
 const (
@@ -108,6 +109,11 @@ func (images *Images) PullImages(runtime connector.Runtime, kubeConf *common.Kub
 			host.IsRole(common.ETCD) && image.Group == kubekeyapiv1alpha2.Etcd && image.Enable:
 
 			logger.Log.Messagef(host.GetName(), "downloading image: %s", image.ImageName())
+			if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH %s inspecti -q %s", pullCmd, image.ImageName()), false); err == nil {
+				logger.Log.Infof("%s pull image %s exists", pullCmd, image.ImageName())
+				continue
+			}
+
 			if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH %s pull %s", pullCmd, image.ImageName()), false); err != nil {
 				return errors.Wrap(err, "pull image failed")
 			}
