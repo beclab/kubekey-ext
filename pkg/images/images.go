@@ -150,7 +150,7 @@ func (i LocalImages) LoadImages(runtime connector.Runtime, kubeConf *common.Kube
 				case "crio":
 					loadCmd = "ctr" // BUG
 				case "containerd":
-					loadCmd = "ctr -n k8s.io images -"
+					loadCmd = "ctr -n k8s.io images import -"
 				case "isula":
 					loadCmd = "isula"
 				default:
@@ -165,7 +165,7 @@ func (i LocalImages) LoadImages(runtime connector.Runtime, kubeConf *common.Kube
 				case "crio":
 					loadCmd = "ctr" // BUG
 				case "containerd":
-					loadCmd = "ctr -n k8s.io images"
+					loadCmd = "ctr -n k8s.io images import"
 				case "isula":
 					loadCmd = "isula"
 				default:
