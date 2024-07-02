@@ -170,7 +170,7 @@ func (i LocalImages) LoadImages(runtime connector.Runtime, kubeConf *common.Kube
 
 				// continue if load image error
 				if err := retry(func() error {
-					if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH gunzip -c %s | %s", image.Filename, loadCmd), false); err != nil {
+					if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH gunzip -c %s | %s", image.Filename, loadCmd), true); err != nil {
 						return errors.Wrap(err, "load image failed")
 					}
 
@@ -191,7 +191,7 @@ func (i LocalImages) LoadImages(runtime connector.Runtime, kubeConf *common.Kube
 				}
 
 				if err := retry(func() error {
-					if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH %s %s", loadCmd, image.Filename), false); err != nil {
+					if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH %s %s", loadCmd, image.Filename), true); err != nil {
 						return errors.Wrap(err, "load image failed")
 					}
 
@@ -200,7 +200,7 @@ func (i LocalImages) LoadImages(runtime connector.Runtime, kubeConf *common.Kube
 					logger.Log.Error(err)
 				}
 			}
-			fmt.Printf("%s load image %s success in %s", loadCmd, image.Filename, time.Since(start))
+			fmt.Printf("%s load image %s success in %s\n", loadCmd, image.Filename, time.Since(start))
 		default:
 			continue
 		}
