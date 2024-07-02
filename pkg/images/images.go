@@ -138,6 +138,17 @@ func (i LocalImages) LoadImages(runtime connector.Runtime, kubeConf *common.Kube
 
 	host := runtime.RemoteHost()
 
+	retry := func(f func() error, times int) (err error) {
+		for i := 0; i < times; i++ {
+			err = f()
+			if err == nil {
+				return
+			}
+		}
+
+		return
+	}
+
 	for _, image := range i {
 		switch {
 		case host.IsRole(common.Master):
@@ -157,8 +168,15 @@ func (i LocalImages) LoadImages(runtime connector.Runtime, kubeConf *common.Kube
 					loadCmd = "docker load"
 				}
 
-				if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH gunzip -c %s | %s", image.Filename, loadCmd), false); err != nil {
-					return errors.Wrap(err, "load image failed")
+				// continue if load image error
+				if err := retry(func() error {
+					if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH gunzip -c %s | %s", image.Filename, loadCmd), false); err != nil {
+						return errors.Wrap(err, "load image failed")
+					}
+
+					return nil
+				}, 5); err != nil {
+					logger.Log.Error(err)
 				}
 			} else {
 				switch kubeConf.Cluster.Kubernetes.ContainerManager {
@@ -172,8 +190,14 @@ func (i LocalImages) LoadImages(runtime connector.Runtime, kubeConf *common.Kube
 					loadCmd = "docker load -i"
 				}
 
-				if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH %s %s", loadCmd, image.Filename), false); err != nil {
-					return errors.Wrap(err, "load image failed")
+				if err := retry(func() error {
+					if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH %s %s", loadCmd, image.Filename), false); err != nil {
+						return errors.Wrap(err, "load image failed")
+					}
+
+					return nil
+				}, 5); err != nil {
+					logger.Log.Error(err)
 				}
 			}
 			fmt.Printf("%s load image %s success in %s", loadCmd, image.Filename, time.Since(start))
