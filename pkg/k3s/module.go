@@ -130,7 +130,7 @@ func (i *InitClusterModule) Init() {
 			&ClusterIsExist{Not: true},
 		},
 		Action:   new(GenerateK3sService),
-		Parallel: true,
+		Parallel: false,
 	}
 
 	k3sEnv := &task.RemoteTask{
@@ -142,7 +142,7 @@ func (i *InitClusterModule) Init() {
 			&ClusterIsExist{Not: true},
 		},
 		Action:   new(GenerateK3sServiceEnv),
-		Parallel: true,
+		Parallel: false,
 	}
 
 	k3sRegistryConfig := &task.RemoteTask{
@@ -155,7 +155,7 @@ func (i *InitClusterModule) Init() {
 			//&UsePrivateRegstry{Not: false},
 		},
 		Action:   new(GenerateK3sRegistryConfig),
-		Parallel: true,
+		Parallel: false,
 	}
 
 	enableK3s := &task.RemoteTask{
@@ -167,7 +167,20 @@ func (i *InitClusterModule) Init() {
 			&ClusterIsExist{Not: true},
 		},
 		Action:   new(EnableK3sService),
-		Parallel: true,
+		Parallel: false,
+	}
+
+	// preload image
+	preloadImages := &task.RemoteTask{
+		Name:  "PreloadImagesService",
+		Desc:  "Preload Images",
+		Hosts: i.Runtime.GetHostsByRole(common.Master),
+		Prepare: &prepare.PrepareCollection{
+			new(common.OnlyFirstMaster),
+			&ClusterIsExist{Not: true},
+		},
+		Action:   new(PreloadImagesService),
+		Parallel: false,
 	}
 
 	copyKubeConfig := &task.RemoteTask{
@@ -217,6 +230,7 @@ func (i *InitClusterModule) Init() {
 		k3sEnv,
 		k3sRegistryConfig,
 		enableK3s,
+		preloadImages,
 		copyKubeConfig,
 		addMasterTaint,
 		addWorkerLabel,

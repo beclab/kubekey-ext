@@ -19,6 +19,8 @@ package images
 import (
 	"fmt"
 	"os"
+	"strings"
+	"time"
 
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
@@ -123,4 +125,61 @@ func (images *Images) PullImages(runtime connector.Runtime, kubeConf *common.Kub
 
 	}
 	return nil
+}
+
+type LocalImage struct {
+	Filename string
+}
+
+type LocalImages []LocalImage
+
+func (i LocalImages) LoadImages(runtime connector.Runtime, kubeConf *common.KubeConf) error {
+	pullCmd := "docker"
+	switch kubeConf.Cluster.Kubernetes.ContainerManager {
+	case "crio":
+		pullCmd = "ctr" // BUG
+	case "containerd":
+		pullCmd = "ctr"
+	case "isula":
+		pullCmd = "isula"
+	default:
+		pullCmd = "docker"
+	}
+
+	host := runtime.RemoteHost()
+
+	for _, image := range i {
+		switch {
+		case host.IsRole(common.Master):
+
+			logger.Log.Messagef(host.GetName(), "preloading image: %s", image.Filename)
+			start := time.Now()
+
+			if HasSuffixI(image.Filename, ".tar.gz", ".tgz") {
+				if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH gunzip -c %s | %s import -", image.Filename, pullCmd), false); err != nil {
+					return errors.Wrap(err, "load image failed")
+				}
+			} else {
+				if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH %s import %s", pullCmd, image.Filename), false); err != nil {
+					return errors.Wrap(err, "load image failed")
+				}
+			}
+			logger.Log.Infof("%s load image %s success in %s", pullCmd, image.Filename, time.Since(start))
+		default:
+			continue
+		}
+
+	}
+	return nil
+
+}
+
+func HasSuffixI(s string, suffixes ...string) bool {
+	s = strings.ToLower(s)
+	for _, suffix := range suffixes {
+		if strings.HasSuffix(s, strings.ToLower(suffix)) {
+			return true
+		}
+	}
+	return false
 }
