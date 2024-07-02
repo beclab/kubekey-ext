@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -30,6 +31,7 @@ import (
 	"github.com/kubesphere/kubekey/pkg/common"
 	"github.com/kubesphere/kubekey/pkg/core/action"
 	"github.com/kubesphere/kubekey/pkg/core/connector"
+	"github.com/kubesphere/kubekey/pkg/core/logger"
 	"github.com/kubesphere/kubekey/pkg/core/util"
 	"github.com/kubesphere/kubekey/pkg/files"
 	"github.com/kubesphere/kubekey/pkg/images"
@@ -322,6 +324,47 @@ func (e *EnableK3sService) Execute(runtime connector.Runtime) error {
 	if _, err := runtime.GetRunner().SudoCmd("systemctl daemon-reload && systemctl enable --now k3s",
 		false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "enable k3s failed")
+	}
+	return nil
+}
+
+type PreloadImagesService struct {
+	common.KubeAction
+}
+
+func (p *PreloadImagesService) Execute(runtime connector.Runtime) error {
+	imageDir := "/var/lib/images"
+	fileInfo, err := os.Stat(imageDir)
+	if os.IsNotExist(err) {
+		return nil
+	} else if err != nil {
+		logger.Log.Errorf("Unable to find images in %s: %v", imageDir, err)
+		return nil
+	}
+
+	if !fileInfo.IsDir() {
+		return nil
+	}
+
+	fileInfos, err := os.ReadDir(imageDir)
+	if err != nil {
+		logger.Log.Errorf("Unable to read images in %s: %v", imageDir, err)
+		return nil
+	}
+
+	var loadingImages images.LocalImages
+	for _, fileInfo := range fileInfos {
+		if fileInfo.IsDir() {
+			continue
+		}
+
+		filePath := filepath.Join(imageDir, fileInfo.Name())
+
+		loadingImages = append(loadingImages, images.LocalImage{Filename: filePath})
+	}
+
+	if err := loadingImages.LoadImages(runtime, p.KubeConf); err != nil {
+		return errors.Wrap(errors.WithStack(err), "preload image failed")
 	}
 	return nil
 }

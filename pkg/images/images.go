@@ -19,6 +19,8 @@ package images
 import (
 	"fmt"
 	"os"
+	"strings"
+	"time"
 
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/pkg/common"
@@ -123,4 +125,97 @@ func (images *Images) PullImages(runtime connector.Runtime, kubeConf *common.Kub
 
 	}
 	return nil
+}
+
+type LocalImage struct {
+	Filename string
+}
+
+type LocalImages []LocalImage
+
+func (i LocalImages) LoadImages(runtime connector.Runtime, kubeConf *common.KubeConf) error {
+	loadCmd := "docker"
+
+	host := runtime.RemoteHost()
+
+	retry := func(f func() error, times int) (err error) {
+		for i := 0; i < times; i++ {
+			err = f()
+			if err == nil {
+				return
+			}
+		}
+
+		return
+	}
+
+	for _, image := range i {
+		switch {
+		case host.IsRole(common.Master):
+
+			logger.Log.Messagef(host.GetName(), "preloading image: %s", image.Filename)
+			start := time.Now()
+
+			if HasSuffixI(image.Filename, ".tar.gz", ".tgz") {
+				switch kubeConf.Cluster.Kubernetes.ContainerManager {
+				case "crio":
+					loadCmd = "ctr" // BUG
+				case "containerd":
+					loadCmd = "ctr -n k8s.io images import -"
+				case "isula":
+					loadCmd = "isula"
+				default:
+					loadCmd = "docker load"
+				}
+
+				// continue if load image error
+				if err := retry(func() error {
+					if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH gunzip -c %s | %s", image.Filename, loadCmd), true); err != nil {
+						return errors.Wrap(err, "load image failed")
+					}
+
+					return nil
+				}, 5); err != nil {
+					logger.Log.Error(err)
+				}
+			} else {
+				switch kubeConf.Cluster.Kubernetes.ContainerManager {
+				case "crio":
+					loadCmd = "ctr" // BUG
+				case "containerd":
+					loadCmd = "ctr -n k8s.io images import"
+				case "isula":
+					loadCmd = "isula"
+				default:
+					loadCmd = "docker load -i"
+				}
+
+				if err := retry(func() error {
+					if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH %s %s", loadCmd, image.Filename), true); err != nil {
+						return errors.Wrap(err, "load image failed")
+					}
+
+					return nil
+				}, 5); err != nil {
+					logger.Log.Error(err)
+				}
+			}
+			fmt.Printf("%s load image %s success in %s\n", loadCmd, image.Filename, time.Since(start))
+		default:
+			continue
+		}
+
+	}
+	return nil
+
+}
+
+func HasSuffixI(s string, suffixes ...string) bool {
+	s = strings.ToLower(s)
+	for _, suffix := range suffixes {
+		if strings.HasSuffix(s, strings.ToLower(suffix)) {
+			return true
+		}
+	}
+	return false
 }
