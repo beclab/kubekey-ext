@@ -176,7 +176,7 @@ func (i LocalImages) LoadImages(runtime connector.Runtime, kubeConf *common.Kube
 					return errors.Wrap(err, "load image failed")
 				}
 			}
-			logger.Log.Infof("%s load image %s success in %s", loadCmd, image.Filename, time.Since(start))
+			fmt.Printf("%s load image %s success in %s", loadCmd, image.Filename, time.Since(start))
 		default:
 			continue
 		}
