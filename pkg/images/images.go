@@ -134,17 +134,7 @@ type LocalImage struct {
 type LocalImages []LocalImage
 
 func (i LocalImages) LoadImages(runtime connector.Runtime, kubeConf *common.KubeConf) error {
-	pullCmd := "docker"
-	switch kubeConf.Cluster.Kubernetes.ContainerManager {
-	case "crio":
-		pullCmd = "ctr" // BUG
-	case "containerd":
-		pullCmd = "ctr"
-	case "isula":
-		pullCmd = "isula"
-	default:
-		pullCmd = "docker"
-	}
+	loadCmd := "docker"
 
 	host := runtime.RemoteHost()
 
@@ -156,15 +146,37 @@ func (i LocalImages) LoadImages(runtime connector.Runtime, kubeConf *common.Kube
 			start := time.Now()
 
 			if HasSuffixI(image.Filename, ".tar.gz", ".tgz") {
-				if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH gunzip -c %s | %s import -", image.Filename, pullCmd), false); err != nil {
+				switch kubeConf.Cluster.Kubernetes.ContainerManager {
+				case "crio":
+					loadCmd = "ctr" // BUG
+				case "containerd":
+					loadCmd = "ctr -n k8s.io images -"
+				case "isula":
+					loadCmd = "isula"
+				default:
+					loadCmd = "docker load"
+				}
+
+				if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH gunzip -c %s | %s", image.Filename, loadCmd), false); err != nil {
 					return errors.Wrap(err, "load image failed")
 				}
 			} else {
-				if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH %s import %s", pullCmd, image.Filename), false); err != nil {
+				switch kubeConf.Cluster.Kubernetes.ContainerManager {
+				case "crio":
+					loadCmd = "ctr" // BUG
+				case "containerd":
+					loadCmd = "ctr -n k8s.io images"
+				case "isula":
+					loadCmd = "isula"
+				default:
+					loadCmd = "docker load -i"
+				}
+
+				if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("env PATH=$PATH %s %s", loadCmd, image.Filename), false); err != nil {
 					return errors.Wrap(err, "load image failed")
 				}
 			}
-			logger.Log.Infof("%s load image %s success in %s", pullCmd, image.Filename, time.Since(start))
+			logger.Log.Infof("%s load image %s success in %s", loadCmd, image.Filename, time.Since(start))
 		default:
 			continue
 		}
