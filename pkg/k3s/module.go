@@ -287,7 +287,7 @@ func (j *JoinNodesModule) Init() {
 			&NodeInCluster{Not: true},
 		},
 		Action:   new(EnableK3sService),
-		Parallel: true,
+		Parallel: false,
 	}
 
 	// preload image
