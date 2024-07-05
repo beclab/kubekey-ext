@@ -292,13 +292,10 @@ func (j *JoinNodesModule) Init() {
 
 	// preload image
 	preloadImages := &task.RemoteTask{
-		Name:  "PreloadImagesService",
-		Desc:  "Preload Images",
-		Hosts: j.Runtime.GetHostsByRole(common.Master),
-		Prepare: &prepare.PrepareCollection{
-			new(common.OnlyFirstMaster),
-			&ClusterIsExist{Not: true},
-		},
+		Name:     "PreloadImagesService",
+		Desc:     "Preload Images",
+		Hosts:    j.Runtime.GetHostsByRole(common.Master),
+		Prepare:  &prepare.PrepareCollection{},
 		Action:   new(PreloadImagesService),
 		Parallel: false,
 	}
