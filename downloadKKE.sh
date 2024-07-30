@@ -18,6 +18,7 @@
 
 ISLINUX=true
 OSTYPE="linux"
+CURL_TRY="--connect-timeout 30 --retry 5 --retry-delay 1 --retry-max-time 10 "
 
 if [ "x$(uname)" != "xLinux" ]; then
   echo ""
@@ -64,7 +65,7 @@ echo ""
 echo "Downloading kubekey-ext ${VERSION} from ${DOWNLOAD_URL} ..."
 echo ""
 
-curl -fsLO "$DOWNLOAD_URL"
+curl ${CURL_TRY} -fsLO "$DOWNLOAD_URL"
 if [ $? -ne 0 ]; then
   echo ""
   echo "Failed to download Kubekey-ext ${VERSION} !"
